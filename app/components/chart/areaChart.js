@@ -6,7 +6,7 @@ angular
             data: '<'
         },
         controller: Controller,
-        template: `<div google-chart chart="$ctrl.chart" style="$ctrl.chart.cssStyle"></div>`
+        template: `<div google-chart chart='$ctrl.chart' style='$ctrl.chart.cssStyle'></div>`
     });
 
 Controller.$inject = ['$q']
@@ -19,32 +19,55 @@ function Controller($q) {
         { name: 'actual-passed', color: 'red', line: 'continuos' },
         { name: 'prognos-planned', color: 'lightgreen', line: 'intermitent' },
         { name: 'prognos-passed', color: 'pink', line: 'intermitent' },
-        { name: 'closeToendDate' , color: 'orange', line: 'intermitent'},
-        {name: 'contractedMileageLine' , color: 'red',line:'intermitent'}];
+        { name: 'closeToendDate', color: 'orange', line: 'intermitent' },
+        { name: 'contractedMileageLine', color: 'red', line: 'intermitent' }];
 
-    const userData = [
+    const userData = 
         {
-            assumedMileage: 250,
-            assumedDate: '20170401',
-            contractStart: '20170201',
-            contractEnd: '20170407',
-            mileage: 200,
+            assumedMileage: 475,
+            assumedDate: '20170315',
+            contractStart: '20170207',
+            contractEnd: '20170421',
+            mileage: 450,
             contractMileage: 400
-        }];
+        };
 
     let actualValues = [];
+    let assumedData = false;
 
-    var chartData = {};
-    chartData.type = "ComboChart";
-    chartData.cssStyle = "height:200px; width:300px;";
-    chartData.data = {
-        "cols": [
-            { id: "month", label: "Month", type: "string" },
-            { id: "line1-id", label: "line1", type: "number" },
-            { id: "line2-id", label: "line2", type: "number" },
-            { id: "line3-id", label: "line3", type: "number" },
-            { id: "line4-id", label: "line4", type: "number" }
-        ], "rows": []
+    var chartData = {
+        type: 'ComboChart',
+        cssStyle: 'height:200px; width:300px;',
+        data: {
+            'cols': [
+                { id: 'month', label: 'Month', type: 'string' },
+                { id: 'line1-id', label: '', type: 'number' },
+                { id: 'line2-id', label: '', type: 'number' },
+                { id: 'line3-id', label: '', type: 'number' },
+                { id: 'line4-id', label: '', type: 'number' },
+                { id: 'line5-id', label: '', type: 'number' }
+
+            ], 'rows': []
+        },
+        options: {
+            title: 'Mileage contract',
+            type: 'area',
+            colors: [],
+            legend: 'none',
+            displayExactValues: true,
+            crosshair: { trigger: 'both', orientation: 'vertical' },
+            vAxis: {
+                ticks: [0, 100, 200, 300, 400, 500]
+            },
+            hAxis: {
+            },
+            series: {
+                2: {
+                    areaOpacity: 0,
+                    visibleInLegend: false
+                }
+            }
+        }
     };
 
     Init();
@@ -57,23 +80,31 @@ function Controller($q) {
             .catch(error => console.info(error));
     }
 
-    function getAssumedData(chart, index) {
-        if (index === 1) {
-            return userData[0]['mileage'];
-        } else if (index === 2) {
-            return userData[0]['assumedMileage'];
-        } else if (index === 3) {
-            return userData[0]['assumedMileage'];
+    function getAssumedMileage(index) {
+        switch (index) {
+            case 1:
+                return userData['mileage'];
+                break;
+            case 2:
+                return userData['assumedMileage'];
+                break;
+            case 3:
+                return null;
+                return userData['assumedMileage'];
+                break
         }
     }
 
-    function getContractedData(index) {
+    function getActualMileage(index) {
+        let startDate = moment(userData['contractStart']).format('MMM');
+        let todayDate = moment(Date.Now).format('MMM');
+
         switch (index) {
             case 0:
-                return 0
+                return (startDate === todayDate) ? userData['mileage'] : 0;
                 break;
             case 1:
-                return userData[0]['mileage'];
+                return userData['mileage'];
                 break;
             case 3:
                 return null;
@@ -83,76 +114,64 @@ function Controller($q) {
 
     function setLineColors(chart) {
         chart.options.colors = [
-            getChartState('actual', userData[0]['mileage']).color,
-            getChartState('prognos', userData[0]['assumedMileage']).color,
+            getChartState('actual', userData['mileage']).color,
+            getChartState('prognos', userData['assumedMileage']).color,
             chartStates.find(x => x.name === 'contractedMileageLine').color,
             chartStates.find(x => x.name === 'closeToendDate').color];
         return $q.resolve(chart);
     }
 
     function setDates(chart) {
-        const startDate = moment(userData[0]['contractStart']);
-        const endDate = moment(userData[0]['contractEnd']);
+        const startDate = moment(userData['contractStart']);
+        const endDate = moment(userData['contractEnd']);
         const todaysDate = moment();
-        const assumedDate = moment(userData[0]['assumedDate']);
+        const assumedDate = moment(userData['assumedDate']);
 
         if (todaysDate.diff(endDate) > 0) {
-            /*if (endDate.diff(todaysDate, 'days') <= warnOnDaysClose) {
-          chart.splice(3, 0, endDate.subtract(warnOnDaysClose, 'days').format('LL'));
-      }*/
-            actualValues = [startDate.format('LL'), endDate.format("LL"), todaysDate.format('MMM')]
-        } else if (assumedDate > endDate) {
-            actualValues = [startDate.format('LL'), todaysDate.format('MMM'), endDate.format("LL"), assumedDate.format('LL')]
+            assumedData = false;
+            actualValues = [startDate.format('LL'), endDate.format('LL'), todaysDate.format('LL')]
+        } else if (assumedDate > endDate)  {
+            assumedData = true;
+            actualValues = [startDate.format('LL'), todaysDate.format('MMM'), endDate.format('LL'), assumedDate.format('LL')]
+        } else if (endDate.diff(todaysDate, 'days') <= warnOnDaysClose)  {
+            assumedData = true;
+            actualValues = [startDate.format('LL'), todaysDate.format('MMM'), endDate.format('LL'), assumedDate.format('LL')]
         } else {
+            assumedData = true;
             actualValues = [startDate.format('LL'), todaysDate.format('MMM'), assumedDate.format('LL'), endDate.format('LL')];
         }
         return $q.resolve(chart);
     }
 
     function getChartState(state = 'prognos', mileageRef) {
-        const roofMileage = userData[0]['contractMileage'];
+        const roofMileage = userData['contractMileage'];
         const param = mileageRef < roofMileage ? `${state}-planned` : `${state}-passed`;
         const resultState = chartStates.find(x => x.name === param);
         return resultState;
     }
 
+    function checkAssumedDataIsNeeded(index) {
+        if (assumedData) {
+            return ((index === 3) || (index === 2)) ? userData['assumedMileage'] : null
+        }
+        return null;
+    }
+
     function setRowsActualData(chart) {
-        chart.data.rows = actualValues.map(function (date, i) {
+        chart.data.rows = actualValues.map(function (date, index) {
             return {
                 c: [
                     { v: date },
-                    { v: getContractedData(i) },
-                    { v: getAssumedData(chart, i) },
-                    { v: userData[0]['contractMileage'] },
-                    { v: ((i === 3) || (i === 2)) ? userData[0]['assumedMileage'] : null }
+                    { v: getActualMileage(index) },
+                    { v: getAssumedMileage(index) },
+                    { v: userData['contractMileage'] },
+                    { v: checkAssumedDataIsNeeded(index) }
                 ]
             }
         });
-        console.log("chart: ", chart);
+        console.log('chart: ', chart);
         return $q.resolve(chart);
     }
-
-    chartData.options = {
-        title: "Sales per month",
-        type: 'area',
-        colors: [],
-        legend: 'none',
-        displayExactValues: false,
-        crosshair: { trigger: 'both', orientation: 'vertical' },
-        vAxis: {
-            ticks: [0, 100, 200, 300, 400, 500]
-        },
-        hAxis: {
-        },
-        series: {
-            2: {
-                areaOpacity: 0,
-                visibleInLegend: false
-            }
-        }
-    };
-
-    chartData.formatters = {};
 
     vm.chart = chartData;
 }
