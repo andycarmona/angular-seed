@@ -15,22 +15,15 @@ function Controller($q) {
     const vm = this;
     const warnOnDaysClose = 30;
     const dashedLineStyle = ['4', '4'];
-    const chartStates = [
-        { name: 'actual-planned', color: '#94c333', line: 'continuos' },
-        { name: 'actual-passed', color: '#fa0032', line: 'continuos' },
-        { name: 'prognos-planned', color: '#94c333', line: 'intermitent' },
-        { name: 'prognos-passed', color: '#fa0032', line: 'intermitent' },
-        { name: 'closeToendDate', color: '#fcb60b', line: 'intermitent' },
-        { name: 'contractedMileageLine', color: '#94c333', line: 'intermitent' }];
+
 
     const userData =
         {
-            assumedMileage: 375,
+            assumedMileage: 399,
             assumedDate: '20170315',
             contractStart: '20170301',
             contractEnd: '20170321',
-            overrideDate: '20170318',
-            mileage: 350,
+            mileage: 375,
             contractMileage: 400
         };
 
@@ -38,7 +31,6 @@ function Controller($q) {
     const endDate = moment(userData['contractEnd']);
     const todaysDate = moment();
     const assumedDate = moment(userData['assumedDate']);
-    const overrideDate = moment(userData['overrideDate']);
 
     let actualValues = [];
 
@@ -70,9 +62,10 @@ function Controller($q) {
             },
             series: {
                 0: {},
-                1: {},
-                2: {},
+                1: { lineDashStyle: dashedLineStyle },
+                2: { lineDashStyle: dashedLineStyle },
                 3: {
+                    lineDashStyle: dashedLineStyle,
                     areaOpacity: 0,
                     visibleInLegend: true
                 },
@@ -82,55 +75,63 @@ function Controller($q) {
         }
     };
 
+
     Init();
 
     function Init() {
         $q.resolve(chartData)
-            .then(setLinesProperties)
             .then(prepareChartData)
+            .then(setLinesProperties)
             .then(setRowsActualData)
             .catch(error => console.info(error));
     }
 
     function prepareChartData(chart) {
 
-        actualValues = [
+        let initialValues = [
             { date: startDate.format('LL'), mileage: 0 },
             { date: todaysDate.format('LL'), mileage: userData['mileage'] },
             { date: assumedDate.format('LL'), mileage: userData['assumedMileage'] },
             { date: endDate.format('LL'), mileage: userData['assumedMileage'] }];
 
+        actualValues = angular.merge([], initialValues, [
+            { property: getChartState(state = 'actual', userData['mileage']) },
+            { property: getChartState(state = 'prognos', userData['assumedMileage']) },
+            { property: { color: getLineColors('closeToendDate').color } }]);
+
         return $q.resolve(chart);
+    }
+
+    function getLineColors(lineParam) {
+        const linesProperties = [
+            { name: 'actual-planned', color: '#94c333' },
+            { name: 'actual-passed', color: '#fa0032' },
+            { name: 'prognos-planned', color: '#94c333' },
+            { name: 'prognos-passed', color: 'red' },
+            { name: 'closeToendDate', color: 'orange' },
+            { name: 'contractedMileageLine', color: 'yellow' }];
+
+        return linesProperties.find(x => x.name === lineParam);
     }
 
     function setLinesProperties(chart) {
-        let actualLine = getChartState('actual', userData['mileage']);
-        let prognosLine = getChartState('prognos', userData['assumedMileage']);
-        if (prognosLine.name === 'prognos-planned') {
-            angular.extend(chart.options.series['1'], { lineDashStyle: dashedLineStyle });
-             angular.extend(chart.options.series['1'], { lineDashStyle: dashedLineStyle });
-        }
         chart.options.colors = [
-            actualLine.color,
-            prognosLine.color,
-            chartStates.find(x => x.name === 'contractedMileageLine').color,
-            'green',
-            chartStates.find(x => x.name === 'closeToendDate').color];
+            actualValues[0].property.color,
+            actualValues[1].property.color,
+            actualValues[2].property.color,
+            getLineColors('contractedMileageLine').color,
+        ];
         return $q.resolve(chart);
     }
 
-    function getOverridedDistance() {
-        return userData['mileage'] - userData['contractMileage'];
-    }
+
 
     function getChartState(state = 'prognos', mileageRef) {
         const roofMileage = userData['contractMileage'];
         const param = mileageRef < roofMileage ? `${state}-planned` : `${state}-passed`;
-
-        const resultState = chartStates.find(x => x.name === param);
-        return resultState;
+        return getLineColors(param);
     }
-    
+
     function setRowsActualData(chart) {
         chart.data.rows = actualValues.map((data, index) => {
             return {
@@ -148,23 +149,17 @@ function Controller($q) {
     }
 
     function getRowsDates(data) {
-      
-            return { v: data['date'], f: data['date'] }
-    
+
+        return { v: data['date'], f: data['date'] }
+
     }
 
     function getActualRowData(dat, index) {
-        if (index < 2) {
-            return dat['mileage']
-        }
-        return null
+        return (index < 2) ? dat['mileage'] : null;
     }
 
     function getPrognosRowData(dat, index) {
-        if ((index > 0) && (index < 3)) {
-            return dat['mileage'];
-        }
-        return null;
+        return ((index > 0) && (index < 3)) ? dat['mileage'] : null;
     }
 
     function checkOverrideContractMileage(data) {
@@ -172,10 +167,20 @@ function Controller($q) {
     }
 
     function getOverridedRowData(data, index) {
-        if (index >= 2) {
-            return data['mileage'];
+
+        if ((index >= 2) && (isCloseToEndOfContract())) {
+            return data['mileage']
         }
         return null;
+    }
+
+    function getOverridedDistance() {
+
+        return userData['mileage'] - userData['contractMileage'];
+    }
+
+    function isCloseToEndOfContract() {
+        return endDate.diff(todaysDate, 'days') <= warnOnDaysClose;
     }
 
     vm.chart = chartData;
