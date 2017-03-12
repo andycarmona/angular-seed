@@ -69,16 +69,16 @@ function Controller($q) {
                 }
             },
             series: {
-                0: { pointsVisible: false, color: 'red' },
-                1: { lineDashStyle: dashedLineStyle, pointsVisible: true, areaOpacity: 0.2, color: 'blue' },
-                2: { lineDashStyle: dashedLineStyle, pointsVisible: false, color: 'yellow' },
+                0: { pointsVisible: false },
+                1: { lineDashStyle: dashedLineStyle, pointsVisible: true, areaOpacity: 0.2 },
+                2: { lineDashStyle: dashedLineStyle, pointsVisible: false },
                 3: {
                     pointsVisible: false,
                     lineDashStyle: dashedLineStyle,
                     areaOpacity: 0,
                     visibleInLegend: true, color: 'green'
                 },
-                4: { pointsVisible: false, color: 'black' },
+                4: { pointsVisible: false },
 
             }
         }
@@ -100,8 +100,6 @@ function Controller($q) {
         let firstTime = true;
         let vehicleUtilization = [...getVehicleUtilizationData()];
 
-        /* actualValues = angular.merge([], initialValues, [
-
         actualValues = vehicleUtilization.map(data => {
 
             if (data.mileage > userData.contractMileage) {
@@ -118,30 +116,7 @@ function Controller($q) {
 
 
             return data;
-            console.log("initialSeries: ", getInitialSeries(data),index);
-            return { c: getInitialSeries(data, index) }
-            /*  return {
         });
-    function getContractLine() {
-        return [{ v: null }, { v: null }, { v: userData['contractMileage'] }]
-    }
-
-    function getInitialSeries(data, index) {
-         console.log("index: ",index);
-        let actualRow;
-        if (data['state'] === "actual-planned") {
-            actualRow = [getRowsDates(data), { v: data['mileage'] }, { v: null }];
-        } else if (data['state'] === 'actual-passed') {
-            if (actualValues[index].state !== 'actual-planned') {
-                actualRow = [getRowsDates(data), { v: null }, { v: data['mileage'] }];
-            } else {
-                actualRow = [getRowsDates(data), { v: data['mileage'] }, { v: data['mileage'] }];
-            }
-        }
-
-        return actualRow;
-    }
-
         
         actualValues[actualValues.length - 1].state = 'node-assumed';
 
@@ -153,6 +128,7 @@ function Controller($q) {
             vm.chartData.options.series['2'].color = 'orange';
         }
 
+    }
 
     function setRowsActualData() {
         vm.chartData.data.rows = actualValues.map((data, index) => {
@@ -191,32 +167,6 @@ function Controller($q) {
             let sumMileage = temp.reduce((sum, x) => sum + x, 0);
             return { date: element.intervalStartDate, mileage: sumMileage, state: getState(sumMileage) }
         })
-                ? referensDate
-                : { date: element.intervalStartDate, mileage: sumMileage, state: getState(sumMileage) }
-
-            return actualObject;
-        })
-    }
-
-    function setSerieColor() {
-
-    }
-
-    function getState(mileage) {
-        let state = 'actual-planned';
-        if (mileage > userData['contractMileage']) {
-            state = 'actual-passed';
-        }
-        return state
-    }
-
-    function getUpdatedSeries(serie) {
-
-        /*        { date: todaysDate.format('LL'), mileage: userData['mileage'] },
-                { date: assumedDate.format('LL'), mileage: userData['assumedMileage'] },
-                { date: endDate.format('LL'), mileage: userData['assumedMileage'] }*/
-
-        return null
     }
 
     function getState(mileage) {
