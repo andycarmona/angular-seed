@@ -19,18 +19,18 @@ function Controller($q) {
 
     const userData =
         {
-            assumedMileage: 425,
+            assumedMileage: 4250,
             assumedDate: '20170315',
             contractStart: '20170301',
             contractEnd: '20170321',
             mileage: 375,
-            contractMileage: 2000
+            contractMileage: 4000
         };
 
-    const startDate = moment(userData['contractStart']);
-    const endDate = moment(userData['contractEnd']);
-    const todaysDate = moment();
-    const assumedDate = moment(userData['assumedDate']);
+    const startDate = moment(userData.contractStart);
+    const endDate = moment(userData.contractEnd);
+    const todaysDate = '2017-03-04';
+    const assumedDate = moment(userData.assumedDate);
 
     let actualValues = [];
 
@@ -76,7 +76,7 @@ function Controller($q) {
                     pointsVisible: false,
                     lineDashStyle: dashedLineStyle,
                     areaOpacity: 0,
-                    visibleInLegend: true, color: 'blue'
+                    visibleInLegend: true, color: 'green'
                 },
                 4: { pointsVisible: false, color: 'black' },
 
@@ -97,62 +97,31 @@ function Controller($q) {
     }
 
     function prepareChartData(data) {
-        console.log("vehicle utilizatio: ", getVehicleUtilizationData());
-
-        actualValues = [...getVehicleUtilizationData()];
+        let firstTime = true;
+        let vehicleUtilization = [...getVehicleUtilizationData()];
 
         /* actualValues = angular.merge([], initialValues, [
-             { property: getChartState(state = 'actual', userData['mileage']) },
-             { property: getChartState(state = 'prognos', userData['assumedMileage']) },
-             { property: { color: getLineColors('closeToendDate').color } }]);*/
 
-    }
+        actualValues = vehicleUtilization.map(data => {
 
-    function getLineColors(lineParam) {
-        const linesProperties = [
-            { name: 'actual-planned', color: '#94c333' },
-            { name: 'actual-passed', color: '#fa0032' },
-            { name: 'prognos-planned', color: '#94c333' },
-            { name: 'prognos-passed', color: 'red' },
-            { name: 'closeToendDate', color: 'orange' },
-            { name: 'contractedMileageLine', color: 'lightgreen' }];
+            if (data.mileage > userData.contractMileage) {
+                vm.chartData.options.series['0'].color = 'red';
+                vm.chartData.options.series['1'].color = 'red';
+                return { date: data.date, mileage: data.mileage, state: 'node-passed' }
+            }
 
-        return linesProperties.find(x => x.name === lineParam);
-    }
-
-    function setLinesProperties() {
-        vm.chartData.options.colors = [
-            actualValues[0].property.color,
-            actualValues[1].property.color,
-            actualValues[2].property.color,
-            getLineColors('contractedMileageLine').color,
-        ];
-    }
+            if (data.date >= todaysDate) {
+                vm.chartData.options.series['0'].color = 'lightgreen';
+                vm.chartData.options.series['1'].color = 'green';
+                return { date: data.date, mileage: data.mileage, state: 'node-passed' }
+            }
 
 
-
-    function getChartState(state = 'prognos', mileageRef) {
-        const roofMileage = userData['contractMileage'];
-        const param = mileageRef < roofMileage ? `${state}-planned` : `${state}-passed`;
-        return getLineColors(param);
-    }
-
-    function setRowsActualData() {
-        vm.chartData.data.rows = actualValues.map((data, index) => {
-
+            return data;
             console.log("initialSeries: ", getInitialSeries(data),index);
             return { c: getInitialSeries(data, index) }
             /*  return {
-                  c: [
-                      getRowsDates(data, index),
-                      { v: getInitialSeries(data, index) },
-                      { v: null },
-                      { v: userData['contractMileage'] }
-                  ]
-              }*/
         });
-    }
-
     function getContractLine() {
         return [{ v: null }, { v: null }, { v: userData['contractMileage'] }]
     }
@@ -173,32 +142,41 @@ function Controller($q) {
         return actualRow;
     }
 
-    function getRowsDates(data) {
+        
+        actualValues[actualValues.length - 1].state = 'node-assumed';
 
-        return { v: data['date'], f: data['date'] }
-
-    }
-
-
-    function getPrognosRowData(dat, index) {
-        return ((index > 0) && (index < 3)) ? dat['mileage'] : null;
-    }
-
-    function checkOverrideContractMileage(data) {
-        return data['mileage'] > userData['contractMileage'];
-    }
-
-    function getOverridedRowData(data, index) {
-
-        if ((index >= 2) && (isCloseToEndOfContract())) {
-            return data['mileage']
+        if (userData.assumedMileage > userData.contractMileage) {
+            actualValues.push({ date: userData.assumedDate, mileage: userData.assumedMileage, state: 'assumed-passed' })
+            vm.chartData.options.series['2'].color = 'red';
+        } else {
+            actualValues.push({ date: userData.assumedDate, mileage: userData.assumedMileage, state: 'assumed-passed' })
+            vm.chartData.options.series['2'].color = 'orange';
         }
-        return null;
+
+
+    function setRowsActualData() {
+        vm.chartData.data.rows = actualValues.map((data, index) => {
+            return { c: getInitialSeries(data, index) }
+        });
     }
 
-    function getOverridedDistance() {
+    function getContractLine() {
+        return [{ v: null }, { v: null }, { v: userData.contractMileage }]
+    }
 
-        return userData['mileage'] - userData['contractMileage'];
+    function getInitialSeries(data, index) {
+        let state = data['state'];
+        return {
+            'actual-planned': [getRowsDates(data), { v: data.mileage }, { v: null }],
+            'actual-passed': [getRowsDates(data), { v: null }, { v: data.mileage }],
+            'node-passed': [getRowsDates(data), { v: data.mileage }, { v: data.mileage }],
+            'node-assumed': [getRowsDates(data), { v: null }, { v: data.mileage }, { v: data.mileage }],
+            'assumed-passed': [getRowsDates(data), { v: null }, { v: null }, { v: data.mileage }]
+        }[state];
+    }
+
+    function getRowsDates(data) {
+        return { v: data.date, f: data.date }
     }
 
     function isCloseToEndOfContract() {
@@ -210,9 +188,9 @@ function Controller($q) {
         let temp = [];
         return rawData.utilizationIntervals.map((element) => {
             temp.push(element.distance);
-            let referensDate = getUpdatedSeries(element);
             let sumMileage = temp.reduce((sum, x) => sum + x, 0);
-            let actualObject = referensDate !== null
+            return { date: element.intervalStartDate, mileage: sumMileage, state: getState(sumMileage) }
+        })
                 ? referensDate
                 : { date: element.intervalStartDate, mileage: sumMileage, state: getState(sumMileage) }
 
@@ -241,4 +219,11 @@ function Controller($q) {
         return null
     }
 
+    function getState(mileage) {
+        let state = 'actual-planned';
+        if (mileage > userData.contractMileage) {
+            state = 'actual-passed';
+        }
+        return state
+    }
 }
