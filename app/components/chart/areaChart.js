@@ -20,9 +20,9 @@ function Controller($q) {
     const userData =
         {
             assumedMileage: 4250,
-            assumedDate: '20170315',
-            contractStart: '20170301',
-            contractEnd: '20170321',
+            assumedDate: '2017-03-15T12:52:12.100Z',
+            contractStart: '2017-03-01T12:52:12.100Z',
+            contractEnd: '2017-03-23T12:52:12.100Z',
             mileage: 375,
             contractMileage: 4000
         };
@@ -103,31 +103,28 @@ function Controller($q) {
         actualValues = vehicleUtilization.map(data => {
 
             if (data.mileage > userData.contractMileage) {
-                vm.chartData.options.series['0'].color = 'red';
+                vm.chartData.options.series['0'].color = 'pink';
                 vm.chartData.options.series['1'].color = 'red';
                 return { date: data.date, mileage: data.mileage, state: 'node-passed' }
             }
 
             if (data.date >= todaysDate) {
-                vm.chartData.options.series['0'].color = 'lightgreen';
-                vm.chartData.options.series['1'].color = 'green';
+                vm.chartData.options.series['0'].color = 'green';
+                vm.chartData.options.series['1'].color = 'white';
                 return { date: data.date, mileage: data.mileage, state: 'node-passed' }
             }
 
 
             return data;
         });
-        
+
+        updatePrognosData();
+    }
+
+    function updatePrognosData() {
         actualValues[actualValues.length - 1].state = 'node-assumed';
-
-        if (userData.assumedMileage > userData.contractMileage) {
-            actualValues.push({ date: userData.assumedDate, mileage: userData.assumedMileage, state: 'assumed-passed' })
-            vm.chartData.options.series['2'].color = 'red';
-        } else {
-            actualValues.push({ date: userData.assumedDate, mileage: userData.assumedMileage, state: 'assumed-passed' })
-            vm.chartData.options.series['2'].color = 'orange';
-        }
-
+        actualValues.push({ date: assumedDate.format('LL'), mileage: userData.assumedMileage, state: 'assumed-passed' })
+        vm.chartData.options.series['2'].color = userData.assumedMileage > userData.contractMileage ? 'orange' : 'red';
     }
 
     function setRowsActualData() {
@@ -141,14 +138,13 @@ function Controller($q) {
     }
 
     function getInitialSeries(data, index) {
-        let state = data['state'];
         return {
             'actual-planned': [getRowsDates(data), { v: data.mileage }, { v: null }],
             'actual-passed': [getRowsDates(data), { v: null }, { v: data.mileage }],
             'node-passed': [getRowsDates(data), { v: data.mileage }, { v: data.mileage }],
-            'node-assumed': [getRowsDates(data), { v: null }, { v: data.mileage }, { v: data.mileage }],
+            'node-assumed': [getRowsDates(data), { v: data.mileage }, { v: data.mileage }, { v: data.mileage }],
             'assumed-passed': [getRowsDates(data), { v: null }, { v: null }, { v: data.mileage }]
-        }[state];
+        }[data['state']];
     }
 
     function getRowsDates(data) {
@@ -165,7 +161,7 @@ function Controller($q) {
         return rawData.utilizationIntervals.map((element) => {
             temp.push(element.distance);
             let sumMileage = temp.reduce((sum, x) => sum + x, 0);
-            return { date: element.intervalStartDate, mileage: sumMileage, state: getState(sumMileage) }
+            return { date: moment(element.intervalStartDate).format('LL'), mileage: sumMileage, state: getState(sumMileage) }
         })
     }
 
