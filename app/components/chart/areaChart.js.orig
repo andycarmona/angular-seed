@@ -131,8 +131,12 @@ function Controller($q) {
                 { 'v': null },
                 { 'v': userData.assumedMileage },
                 { 'v': userData.contractMileage }]);
-            return vehicleData;
-        }
+    }
+        return vehicleData;
+    function updatePrognosData() {
+        actualValues[actualValues.length - 1].state = 'node-assumed';
+        actualValues.push({ date: assumedDate.format('LL'), mileage: userData.assumedMileage, state: 'assumed-passed' })
+        vm.chartData.options.series['2'].color = userData.assumedMileage > userData.contractMileage ? 'orange' : 'red';
     }
 
     function getRowsDates(date) {
@@ -164,7 +168,7 @@ function Controller($q) {
     function setIntermediateNodes(series) {
         const elementPos = series.map((x) => x.distance > userData.contractMileage).indexOf(true);
         if (elementPos !== -1) {
-            series.splice(elementPos, 0, { distance: userData.contractMileage, intervalStartDate: 'actual-passed' })
+            series.splice(elementPos, 0, { distance: userData.contractMileage, intervalStartDate: 'actual-passed ' })
         }
         return series;
     }
