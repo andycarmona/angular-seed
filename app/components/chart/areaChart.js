@@ -24,7 +24,7 @@ function Controller($q) {
             contractStart: '2017-03-01T12:52:12.100Z',
             contractEnd: '2017-03-23T12:52:12.100Z',
             mileage: 375,
-            contractMileage: 3000
+            contractMileage: 2500
         };
 
     const startDate = moment(userData.contractStart);
@@ -150,18 +150,41 @@ function Controller($q) {
                 element.distance = mileageHolder.reduce((sum, x) => sum + x, 0)
                 return {
                     distance: element.distance,
-                    intervalStartDate: element.intervalStartDate
+                    intervalStartDate: element.intervalStartDate,
+                    status: element.distance >= userData.contractMileage ? 0 : 1
                 };
             })
-        result = setIntermediateNodes(result);
+        //result = setOverdueMileage(result);
+       
+        let index = 1;
         let finalResult = result.map((el, i) => {
-            return getNodeSeries(el.intervalStartDate, el.distance);
+            let serie = [getRowsDates(el.intervalStartDate), { v: null }, { v: null }, { v: null }, { v: userData.contractMileage }]
+            //return getNodeSeries(el.intervalStartDate, el.distance, el.status);
+             setColor(0,'success');
+            if (el.distance > userData.contractMileage) { 
+                setColor(index,'alert');
+                index=2;
+               
+               console.log("index: ",i);
+                serie[index-1]={v:el.distance};
+            }
+            
+            serie[index]={v:el.distance};
+            return serie;
         });
         console.log('finalSeries: ', finalResult);
         return finalResult;
     }
 
-    function setIntermediateNodes(series) {
+    function setTodaysSerie() {
+        const elementPos = series.map((x) => x.intervalStartDate > todaysDate).indexOf(true);
+        if (elementPos !== -1) {
+            series.splice(elementPos - 1, 1, { distance: series.distance, intervalStartDate: 'todays-date' })
+        }
+        return series;
+    }
+
+    function setOverdueMileage(series) {
         const elementPos = series.map((x) => x.distance > userData.contractMileage).indexOf(true);
         if (elementPos !== -1) {
             series.splice(elementPos, 0, { distance: userData.contractMileage, intervalStartDate: 'actual-passed' })
@@ -173,31 +196,5 @@ function Controller($q) {
         vm.chartData.options.series[index].color = getColorCodes(state);
     }
 
-    function getNodeSeries(date, mileage) {
-        let initial = [getRowsDates(date), { v: null }, { v: null }, { v: null }, { v: userData.contractMileage }];
-        let statusPassed = false;
-        let result = initial.map((item, index) => {
-            selected = mileage <= userData.contractMileage ? 1 : 2;
-            setColor(0, 'success');
-            if (item.v === 'actual-passed') { statusPassed = true; }
 
-            switch (statusPassed) {
-                case true:
-                    if ((index === 1) || (index === 2)) {
-                        setColor(0, 'alert');
-                        return { v: mileage };
-                    }
-                    break;
-                case false:
-                    setColor(1, 'prognos-warning');
-                    break;
-            }
-
-            if (index === selected) {
-                return { v: mileage };
-            }
-            return item;
-        });
-        return result;
-    }
 }
