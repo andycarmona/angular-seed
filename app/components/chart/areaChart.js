@@ -53,6 +53,7 @@ function Controller($q) {
         options: {
             title: 'Mileage contract',
             //pointSize: 5,
+            colors: ['green', 'lightgreen', 'red', 'white', 'blue'],
             seriesType: 'area',
             legend: 'none',
             displayExactValues: true,
@@ -70,27 +71,25 @@ function Controller($q) {
             },
             series: {
                 0: { pointsVisible: false },
-                1: { lineDashStyle: dashedLineStyle, pointsVisible: false, areaOpacity: 0.5 },
-                2: { pointsVisible: false, lineDashStyle: dashedLineStyle, pointsVisible: false },
+                1: {
+                    lineDashStyle: dashedLineStyle,
+                    pointsVisible: false
+                },
+                2: {
+                    pointsVisible: false,
+                    lineDashStyle: dashedLineStyle,
+                    pointsVisible: false
+                },
                 3: {
                     pointsVisible: false,
                     lineDashStyle: dashedLineStyle,
-                    areaOpacity: 0,
                     visibleInLegend: true
                 },
                 4: {
                     pointsVisible: false, areaOpacity: 0,
                     visibleInLegend: false, color: 'black',
                     lineDashStyle: dashedLineStyle,
-                },
-                5: {
-                    pointsVisible: false, areaOpacity: 0,
-                    visibleInLegend: false, color: 'black'
-                },
-                6: {
-                    pointsVisible: false, areaOpacity: 0,
-                    visibleInLegend: false, color: 'black'
-                },
+                }
 
             }
         }
@@ -108,7 +107,7 @@ function Controller($q) {
 
     function setRowsActualData(data) {
         let vehicleData = getVehicleUtilizationData();
-        vehicleUtilization = setPrognosData(vehicleData);
+         vehicleUtilization = setPrognosData(vehicleData);
         vm.chartData.data.rows = vehicleData.map((data, index) => {
             return { c: data }
         });
@@ -149,7 +148,7 @@ function Controller($q) {
     function getVehicleUtilizationData() {
         let rawData = { 'totalDistance': 0, 'totalDuration': 0, 'totalFuelUsed': 0, 'totalEcoScore': 0, 'utilizationIntervals': [{ 'distance': 756, 'averageSpeed': 55, 'averageDistance': 756, 'averageFuelConsumption': 14, 'averageTotalEcoScore': 78, 'intervalStartDate': '2017-03-02', 'intervalEndDate': '2017-03-02', 'nrOfVehicles': 61, 'nrOfDrivers': 61 }, { 'distance': 446, 'averageSpeed': 98, 'averageDistance': 446, 'averageFuelConsumption': 12, 'averageTotalEcoScore': 31, 'intervalStartDate': '2017-03-03', 'intervalEndDate': '2017-03-03', 'nrOfVehicles': 61, 'nrOfDrivers': 61 }, { 'distance': 844, 'averageSpeed': 55, 'averageDistance': 844, 'averageFuelConsumption': 10, 'averageTotalEcoScore': 76, 'intervalStartDate': '2017-03-04', 'intervalEndDate': '2017-03-04', 'nrOfVehicles': 61, 'nrOfDrivers': 61 }, { 'distance': 233, 'averageSpeed': 64, 'averageDistance': 233, 'averageFuelConsumption': 6, 'averageTotalEcoScore': 95, 'intervalStartDate': '2017-03-05', 'intervalEndDate': '2017-03-05', 'nrOfVehicles': 61, 'nrOfDrivers': 61 }, { 'distance': 863, 'averageSpeed': 54, 'averageDistance': 863, 'averageFuelConsumption': 7, 'averageTotalEcoScore': 28, 'intervalStartDate': '2017-03-06', 'intervalEndDate': '2017-03-06', 'nrOfVehicles': 61, 'nrOfDrivers': 61 }, { 'distance': 757, 'averageSpeed': 79, 'averageDistance': 757, 'averageFuelConsumption': 9, 'averageTotalEcoScore': 57, 'intervalStartDate': '2017-03-07', 'intervalEndDate': '2017-03-07', 'nrOfVehicles': 61, 'nrOfDrivers': 61 }] }
         let mileageHolder = [];
-        let index = 1;
+        let index = 0;
         let statusPassed = false;
         let todaysPassed = false;
 
@@ -163,6 +162,7 @@ function Controller($q) {
                     status: element.distance >= userData.contractMileage ? 0 : 1
                 };
             }).map((el, i) => {
+                console.log("idnex: ", index, i)
                 let serie = [
                     getRowsDates(el.intervalStartDate),
                     { v: null },
@@ -171,17 +171,37 @@ function Controller($q) {
                     { v: null },
                     { v: userData.contractMileage }]
 
-                setColor(0, 'success');
+                //setColor(index, 'success');
+
                 if ((el.distance >= userData.contractMileage) && (!statusPassed)) {
                     statusPassed = true;
+                    //setColor(index + 1, 'alert');
+
                     index++;
-                    setColor(index, 'alert');
-                    serie[index - 1] = { v: el.distance };
+                    serie[index] = { v: el.distance };
+                }
+                if ((el.intervalStartDate === todaysDate) && (!todaysPassed)) {
+                    todaysPassed = true;
+                    //setColor(index, 'success');
+                    index++;
+                    serie[index] = { v: el.distance };
 
                 }
-                serie[index] = { v: el.distance };
+
+
+
+
+
+
+                serie[index + 1] = { v: el.distance };
+                if (index === 2) {
+
+                    serie[index] = { v: el.distance };
+                }
+                // console.log("Serie: ",serie)
                 return serie;
             });
+        console.log("result: ", result);
         return result;
     }
 
