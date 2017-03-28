@@ -24,7 +24,7 @@ function Controller($q) {
             contractStart: '2017-03-01T12:52:12.100Z',
             contractEnd: '2017-03-23T12:52:12.100Z',
             mileage: 375,
-            contractMileage: 2500
+            contractMileage: 3000
         };
 
     const startDate = moment(userData.contractStart);
@@ -52,7 +52,7 @@ function Controller($q) {
         },
         options: {
             title: 'Mileage contract',
-            pointSize: 5,
+            //pointSize: 5,
             seriesType: 'area',
             legend: 'none',
             displayExactValues: true,
@@ -65,13 +65,13 @@ function Controller($q) {
             vAxes: {
                 series: {
                     0: { pointSize: 5 },
-                    2: { pointSize: 5 }
+                    2: { }
                 }
             },
             series: {
                 0: { pointsVisible: false },
-                1: { lineDashStyle: dashedLineStyle, pointsVisible: true, areaOpacity: 0.5 },
-                2: { lineDashStyle: dashedLineStyle, pointsVisible: false },
+                1: {lineDashStyle: dashedLineStyle, pointsVisible: false, areaOpacity: 0.5 },
+                2: { pointsVisible: false,lineDashStyle: dashedLineStyle, pointsVisible: false },
                 3: {
                     pointsVisible: false,
                     lineDashStyle: dashedLineStyle,
@@ -80,9 +80,14 @@ function Controller($q) {
                 },
                 4: {
                     pointsVisible: false, areaOpacity: 0,
-                    visibleInLegend: false, color: 'red'
+                    visibleInLegend: false, color: 'black',
+                    lineDashStyle: dashedLineStyle,
                 },
                 5: {
+                    pointsVisible: false, areaOpacity: 0,
+                    visibleInLegend: false, color: 'black'
+                },
+                 6: {
                     pointsVisible: false, areaOpacity: 0,
                     visibleInLegend: false, color: 'black'
                 },
@@ -115,7 +120,8 @@ function Controller($q) {
             'prognos-success': 'lightgreen',
             'prognos-warning': 'pink',
             'warning': 'orange',
-            'alert': 'red'
+            'alert': 'red',
+            'neutral': 'white'
         }[color];
     }
 
@@ -129,6 +135,7 @@ function Controller($q) {
                 { 'v': userData.assumedDate, 'f': 'Assumed data ' + userData.assumedDate },
                 { 'v': null },
                 { 'v': null },
+                { 'v': userData.assumedMileage },
                 { 'v': userData.assumedMileage },
                 { 'v': userData.contractMileage }]);
             return vehicleData;
@@ -155,41 +162,24 @@ function Controller($q) {
                 };
             })
         //result = setOverdueMileage(result);
-       
+
         let index = 1;
+        let statusPassed = false;
+        let todaysPassed = false;
         let finalResult = result.map((el, i) => {
-            let serie = [getRowsDates(el.intervalStartDate), { v: null }, { v: null }, { v: null }, { v: userData.contractMileage }]
-            //return getNodeSeries(el.intervalStartDate, el.distance, el.status);
-             setColor(0,'success');
-            if (el.distance > userData.contractMileage) { 
-                setColor(index,'alert');
-                index=2;
-               
-               console.log("index: ",i);
-                serie[index-1]={v:el.distance};
+            let serie = [getRowsDates(el.intervalStartDate), { v: null }, { v: null }, { v: null }, { v: null }, { v: userData.contractMileage }]
+            setColor(0, 'success');
+            if ((el.distance >= userData.contractMileage) && (!statusPassed)) {
+                statusPassed = true;
+                index++;
+                setColor(index, 'alert');
+                serie[index - 1] = { v: el.distance };
+
             }
-            
-            serie[index]={v:el.distance};
+            serie[index] = { v: el.distance };
             return serie;
         });
-        console.log('finalSeries: ', finalResult);
         return finalResult;
-    }
-
-    function setTodaysSerie() {
-        const elementPos = series.map((x) => x.intervalStartDate > todaysDate).indexOf(true);
-        if (elementPos !== -1) {
-            series.splice(elementPos - 1, 1, { distance: series.distance, intervalStartDate: 'todays-date' })
-        }
-        return series;
-    }
-
-    function setOverdueMileage(series) {
-        const elementPos = series.map((x) => x.distance > userData.contractMileage).indexOf(true);
-        if (elementPos !== -1) {
-            series.splice(elementPos, 0, { distance: userData.contractMileage, intervalStartDate: 'actual-passed' })
-        }
-        return series;
     }
 
     function setColor(index, state) {
